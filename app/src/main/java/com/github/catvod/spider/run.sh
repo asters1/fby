@@ -1,3 +1,3 @@
 #!/bin/bash
-cd ~/javapj/test/
-~/javapj/test/gradlew -q run
+cd ~/javapj/fby/
+~/javapj/fby/gradlew -q run

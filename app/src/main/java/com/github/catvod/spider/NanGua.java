@@ -143,6 +143,8 @@ public class NanGua extends Spider {
       C0041.m893(sb, C0035.m827(m381(), 1312, 6, 1661));
       C0034.m817(sb, m108);
       C0041.m893(sb, C0023.m609(m381(), 1318, 39, 2745));
+      C0041.m893(sb, m380(this));
+
 
       System.out.println(sb.toString());
 
@@ -215,4 +217,39 @@ public class NanGua extends Spider {
   public static String m382(Object obj) {
     return "&time="+((NanGua) obj).tF;
   }
+  public static String m380(Object obj) {
+        int m12 = C0000.m12();
+        int i = 1616;
+        while (true) {
+            i ^= 1633;
+            switch (i) {
+                case 14:
+                    break;
+                case 49:
+                    if (m12 <= 0) {
+                        break;
+                    } else {
+                        i = 1709;
+                        continue;
+                    }
+                case 204:
+                    return ((NanGua) obj).N;
+                case 239:
+                    int i2 = 1740;
+                    while (true) {
+                        i2 ^= 1757;
+switch (i2) {
+                            case 17:
+                                i2 = 1771;
+                                break;
+                            case 54:
+                                return null;
+                        }
+                    }
+                    break;
+            }
+            i = 1678;
+        }
+    }
+
 }
