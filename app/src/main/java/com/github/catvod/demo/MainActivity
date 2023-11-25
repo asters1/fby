@@ -1,0 +1,492 @@
+package com.github.catvod.demo;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import android.content.Context;
+
+import com.github.catvod.crawler.Spider;
+// import com.github.catvod.spider.Douban;
+// import com.github.catvod.spider.Alist4;
+import com.github.catvod.spider.AppYsV2;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+public class MainActivity {
+  public static void main(String[] args) {
+
+    // ========================================
+    // Douban spider=new Douban();
+    AppYsV2 spider=new AppYsV2();
+    //外部字符串
+    // String str_extend = "{\"name\":\"阿里\",\"url\":\"http://localhost:5244\",\"path\":\"阿里云盘/Alist3\",\"pic\":\"http://localhost:5244/p/JDC/pic/\"}";
+    // 彩虹
+    String str_extend = "http://ys.qtw.asia/lvdou_api.php/v1.vod";
+    // 明帝
+    // String str_extend = "https://ys.md214.cn/api.php/app/";
+    // 爱迪
+    // String str_extend = "https://api123.adys.app/xgapp.php/v3/";
+
+    //筛选开关
+    boolean filter_switch = true;
+    //筛选类型的第几个的下标(如:类型，地区，语言，年份....)
+    int filter_type_index=1;
+    //测试筛选的下标
+    int filter_num_index=1;
+    //搜索开关
+    boolean search_switch = false;
+    //搜索关键字
+    String search_keyword = "汪汪";
+    //测试的类型的下标,从0开始(电影,电视剧...)
+    int test_type_index = 0;
+    //测试category的页数,从1开始
+    int test_category_page = 1;
+    //测试的视频下标，从0开始
+    int test_vod_index =2;
+    //测试视频源的下标,从0开始
+    int test_vod_from_index = 0;
+
+    // ========================================
+
+
+
+
+
+    String className = spider.getClass().getName();
+    String spiderName = className.substring(className.lastIndexOf('.') + 1);
+    System.out.println("你测试的类是--->"+spiderName); // 输出 "Object"
+    spider.init(new Context(),str_extend);
+
+    String test_vod=""; 
+    if (search_switch ) {
+      List<String> res_search = test_search(spider, search_keyword);
+      test_vod=res_search.get(test_vod_index);
+
+    }else{
+
+      Class_res_home res_home = test_home(spider,filter_switch,test_type_index,filter_type_index,filter_num_index);
+      String tid = res_home.array.getString(test_type_index);
+      List<String> res_category = test_category(spider, tid, test_category_page,filter_switch,res_home.category_extend);
+      test_vod=res_category.get(test_vod_index);
+    }
+
+    JSONObject res_detail= test_detail(spider,test_vod ,test_vod_from_index);
+    List<String> vipFlags = new ArrayList<>();
+
+    JSONObject res_play= test_player(spider, res_detail.getString("flag"), res_detail.getString("id"), vipFlags);
+    try{
+      System.out.println("//header");
+      System.out.println(res_play.getString("header"));
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//播放方式(parse)");
+      if(res_play.getInt("parse")==0){
+        System.out.println("直接播放");
+      }else if(res_play.getInt("parse")==1){
+        System.out.println("嗅探播放");
+      }else{
+        System.out.println("播放方式出错");
+      }
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//playurl");
+      System.out.println(res_play.getString("playurl"));
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.print("\n//url\n");
+      System.out.println(res_play.getString("url"));
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    System.exit(0);
+  }
+
+
+
+
+
+
+  //===========函数部分==============
+  public static Class_res_home test_home(Spider spider,boolean filter_switch,int test_type_index,int filter_type_index,int filter_num_index) {
+    Class_res_home res_class = new Class_res_home();
+    res_class.category_extend=new HashMap<String,String>();
+
+    JSONArray res = new JSONArray();
+    HashMap<String, ArrayList<HashMap<String, String>>> res_extend = new HashMap<>();
+
+    System.out.println("==========homeContent:=======\n");
+    String strhomeContent = spider.homeContent(filter_switch);
+    // System.out.println(strhomeContent);
+    if (strhomeContent.equals("")) {
+      System.out.println("homeContent返回为空");
+      System.exit(0);
+    }
+
+    JSONObject result = new JSONObject(new String(strhomeContent));
+
+    try {
+      JSONArray classes = result.getJSONArray("class");
+      try {
+        for (int i = 0; i < classes.length(); i++) {
+          System.out.print(classes.getJSONObject(i).get("type_name") + "["
+              + classes.getJSONObject(i).get("type_id") + "]" + "\r\n");
+          if(filter_switch){
+            try {
+              JSONArray filters = result.getJSONObject("filters")
+                .getJSONArray(classes.getJSONObject(i).getString("type_id"));
+              // System.out.println(filters);
+              for (int j = 0; j < filters.length(); j++) {
+
+                System.out.print(filters.getJSONObject(j).getString("name") + "  ");
+                JSONArray value = filters.getJSONObject(j).getJSONArray("value");
+                String key = filters.getJSONObject(j).getString("key");
+                // HashMap<String, ArrayList<HashMap<String, String>>> leixing = new
+                // HashMap<String, ArrayList<HashMap<String, String>>>();
+                ArrayList<HashMap<String, String>> leixing = new ArrayList<>();
+                for (int k = 0; k < value.length(); k++) {
+                  HashMap<String, String> hashMap = new HashMap<>();
+                  System.out.print(value.getJSONObject(k).getString("n") + "  ");
+                  hashMap.put(key, value.getJSONObject(k).getString("v"));
+                  if(test_type_index==i&&filter_type_index==j&&filter_num_index==k){
+
+                    res_class.category_extend.put(key, value.getJSONObject(k).getString("v"));
+
+                  } 
+                  leixing.add(hashMap);
+
+
+                }
+                System.out.println("\r\n");
+                res_extend.put(classes.getJSONObject(i).getString("type_id"), leixing);
+
+              }
+
+            } catch (Exception e) {
+              System.out.println("未读取到[" + classes.getJSONObject(i).get("type_id") + "]的筛选信息\r\n");
+            }
+          }else{
+            if (i==classes.length()-1){
+              System.out.println("\n筛选开关已关闭!");
+            }
+          }
+          res.put(classes.getJSONObject(i).get("type_id"));
+        }
+
+        res_class.array = res;
+        res_class.extend = res_extend;
+        // if (filter_switch){
+
+          // System.out.print("筛选信息-->");
+          // System.out.println(res_class.extend);
+        // }
+        return res_class;
+      } catch (Exception e) {
+        OsExit("未读取到type_name或者type_id,请检查!");
+      }
+    } catch (Exception e) {
+      OsExit("未读取到class,请检查!");
+    }
+    return null;
+  }
+
+  public static List<String> test_category(Spider spider, String tid, int pg,boolean filter_switch, HashMap<String, String> extend) {
+    System.out.print("\r\n你测试的分类为:" + tid);
+    System.out.print("\r\n你测试的筛选为:" + extend);
+    System.out.println("\r\n==========categoryContent:=======\r\n");
+    List<String> res = new ArrayList<>();
+    String strcategoryContent = spider.categoryContent(tid, Integer.toString(pg), true, extend);
+    if (strcategoryContent.equals("")) {
+      System.out.println("categoryContent返回为空");
+      System.exit(0);
+    }
+    JSONObject result = new JSONObject(new String(strcategoryContent));
+    try {
+      int page = result.getInt("page");
+      System.out.println("//当前页");
+      System.out.println("page:" + page);
+    } catch (Exception e) {
+      System.out.println("//当前页");
+      System.out.println("没有解析到page，请检查！！！");
+    }
+    try {
+      int pagecount = result.getInt("pagecount");
+      System.out.println("// 总共几页");
+      System.out.println("pagecount:" + pagecount);
+    } catch (Exception e) {
+      System.out.println("// 总共几页");
+      System.out.println("没有解析到pagecount，请检查！！！");
+    }
+    try {
+      int limit = result.getInt("limit");
+      System.out.println("// 每页几条数据");
+      System.out.println("limit:" + limit);
+    } catch (Exception e) {
+      System.out.println("// 每页几条数据");
+      System.out.println("没有解析到limit，请检查！！！");
+    }
+    try {
+      int total = result.getInt("total");
+      System.out.println(" // 总共多少条数据");
+      System.out.println("total:" + total);
+    } catch (Exception e) {
+      System.out.println(" // 总共多少条数据");
+      System.out.println("没有解析到total，请检查！！！");
+    }
+    try {
+      JSONArray list = result.getJSONArray("list");
+      System.out.println(" //视频列表");
+      try {
+        for (int i = 0; i < list.length(); i++) {
+          System.out.print(list.getJSONObject(i).get("vod_name") + "["
+              + list.getJSONObject(i).get("vod_id") + "]" + "\r\n");
+          res.add(list.getJSONObject(i).get("vod_id").toString());
+        }
+      } catch (Exception e) {
+        System.out.println("视频列表解析出现问题，请检查!");
+      }
+    } catch (Exception e) {
+      System.out.println(" // 总共多少调数据");
+      System.out.println("没有解析到list，请检查！！！");
+    }
+
+    return res;
+
+
+  }
+  public static JSONObject test_detail(Spider spider, String ids0,int test_vod_from_index) {
+    // 视频详细信息,注意List<String> ids只有一个tid
+
+
+    JSONObject result_obj = new JSONObject();
+    List<String> ids = new ArrayList<>();
+    ids.add(ids0);
+    System.out.println("\r\n==========detailContent:=======\r\n");
+    System.out.println("你测试的链接是:" + ids0);
+    JSONArray data = new JSONArray();
+    String strdetailContent = spider.detailContent(ids);
+    if (strdetailContent.equals("")) {
+      System.out.println("detailContent返回为空");
+      System.exit(0);
+    }
+    JSONObject result = new JSONObject(new String(strdetailContent));
+    JSONArray list = result.getJSONArray("list");
+
+    try{
+      System.out.println("\n//视频ID(vod_id)");
+      String vod_id=list.getJSONObject(0).getString("vod_id");
+      System.out.println(vod_id);
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//视频名称(vod_name)");
+      String vod_name=list.getJSONObject(0).getString("vod_name");
+      System.out.println(vod_name);
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//视频封面(vod_pic)");
+      String vod_pic=list.getJSONObject(0).getString("vod_pic");
+      System.out.println(vod_pic);
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//类型(type_name)");
+      String type_name=list.getJSONObject(0).getString("type_name");
+      System.out.println(type_name);
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//年份(vod_year)");
+      String vod_year=list.getJSONObject(0).getString("vod_year");
+      System.out.println(vod_year);
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//地区(vod_area)");
+      String vod_area=list.getJSONObject(0).getString("vod_area");
+      System.out.println(vod_area);
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//提示信息(vod_remarks)");
+      String vod_remarks=list.getJSONObject(0).getString("vod_remarks");
+      System.out.println(vod_remarks);
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//主演(vod_actor)");
+      String vod_actor=list.getJSONObject(0).getString("vod_actor");
+      System.out.println(vod_actor);
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//导演(vod_director)");
+      String vod_director=list.getJSONObject(0).getString("vod_director");
+      System.out.println(vod_director);
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      System.out.println("\n//简介(vod_content)");
+      String vod_content=list.getJSONObject(0).getString("vod_content");
+      System.out.println(vod_content);
+
+    } catch (Exception e) {
+      System.out.println("未定义");
+    }
+    try{
+      try {
+        String vod_play_from = list.getJSONObject(0).getString("vod_play_from");
+        for (String s : vod_play_from.split("\\$\\$\\$")) {
+          JSONObject source = new JSONObject();
+          source.put("source_name", s);
+          data.put(source);
+        }
+        // System.out.println(data);
+      } catch (Exception e) {
+        System.out.println("没有解析到vod_play_from,请检查!!!");
+      }
+      try {
+        String vod_play_url = list.getJSONObject(0).getString("vod_play_url");
+        int i = 0;
+        for (String url_list : vod_play_url.split("\\$\\$\\$")) {
+          JSONArray d = new JSONArray();
+          for (String name_url : url_list.split("\\#")) {
+            JSONArray n_u = new JSONArray();
+            for (String value : name_url.split("\\$")) {
+              n_u.put(value);
+            }
+
+            d.put(n_u);
+
+          }
+          data.getJSONObject(i).put("data", d);
+          i = i + 1;
+
+        }
+
+      } catch (Exception e) {
+        System.out.println("没有解析到vod_play_url,请检查!!!");
+      }
+      System.out.print("\n//视频播放列表");
+      for (int j = 0; j < data.length(); j++) {
+        System.out.println();
+        for (int k = 0; k < data.getJSONObject(j).getJSONArray("data").length(); k++) {
+          System.out.println(data.getJSONObject(j).getString("source_name") + "--->"
+              + data.getJSONObject(j).getJSONArray("data").getJSONArray(k).getString(0) + "[ "
+              + data.getJSONObject(j).getJSONArray("data").getJSONArray(k).getString(1) + " ]");
+          System.out.println();
+          if(test_vod_from_index==j&&k==0){
+
+            result_obj.put("flag",data.getJSONObject(j).getString("source_name")  );
+            result_obj.put("id", data.getJSONObject(j).getJSONArray("data").getJSONArray(k).getString(1));
+          }
+
+        }
+
+      }
+      return result_obj;
+
+      // System.out.println(list);
+    } catch (Exception e) {
+      OsExit("未读取到list,请检查!!");
+    }
+
+    return null;
+
+  }
+  public static JSONObject test_player(Spider spider, String flag,String id,List<String> vipFlags) {
+    // 播放内容
+    System.out.println("\r\n==========playerContent=======\r\n");
+    System.out.println("测试源为:"+flag);
+    System.out.println("测试ID为:" + id);
+    String strplayerContent = spider.playerContent(flag, id, null);
+    if(strplayerContent.equals("")){
+      OsExit("playerContent返回为空");
+    }
+    JSONObject res_play=new JSONObject(strplayerContent);
+
+    return res_play;
+  }
+  public static List<String> test_search(Spider spider, String key) {
+    List<String> res = new ArrayList<>();
+
+    System.out.println("\r\n==========searchContent=======\r\n");
+    System.out.println("你测试的搜索关键字为==>" + key + "\r\n");
+
+    String strsearchContent = spider.searchContent(key, true);
+    if (strsearchContent.equals("")) {
+      System.out.println("searchContent返回为空");
+      System.exit(0);
+    }
+    JSONObject result = new JSONObject(new String(strsearchContent));
+    try {
+
+      JSONArray list = result.getJSONArray("list");
+      for (int i = 0; i < list.length(); i++) {
+        try {
+
+          String vod_id = list.getJSONObject(i).getString("vod_id");
+          try {
+
+            String vod_name = list.getJSONObject(i).getString("vod_name");
+            System.out.println(vod_name + "[" + vod_id + "]");
+            res.add(vod_id);
+          } catch (Exception e) {
+            System.out.println("没有解析到vod_name");
+          }
+        } catch (Exception e) {
+          System.out.println("没有解析到vod_id");
+        }
+      }
+      return res;
+
+    } catch (Exception e) {
+
+      System.out.println("没有解析到list");
+    }
+    System.exit(0);
+
+    return null;
+  }
+
+
+  public static void OsExit(String str){
+    System.out.println(str);
+    System.exit(0);
+  }
+}
+
+class Class_res_home {
+  JSONArray array;
+  HashMap<String, ArrayList<HashMap<String, String>>> extend;
+  HashMap <String,String> category_extend;
+}
